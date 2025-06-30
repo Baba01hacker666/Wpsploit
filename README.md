@@ -59,7 +59,7 @@ optional arguments:
   -h, --help         show this help message and exit
   -u URL, --url URL  Target WordPress site URL
   --threads THREADS  Thread count
-  --output OUTPUT    Output JSON file
+  --output           Outputs the results in the folder
   --brute            Enable ?author= ID brute-forcing
   --crawl            Enable site crawling
   --extract          Enable API data extraction
@@ -98,7 +98,7 @@ python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract
 Run a full scan and save all the findings to a file named `results.json`.
 
 ```sh
-python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract --output results.json
+python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract --output 
 ```
 
 ### 4. Fast Scan
