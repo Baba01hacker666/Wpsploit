@@ -51,7 +51,7 @@ python3 main.py -h
 ```
 
 ```
-usage: main.py [-h] -u URL [--threads THREADS] [--output OUTPUT] [--brute] [--crawl] [--extract]
+usage: main.py [-h] -u URL [--threads THREADS] [--output ] [--brute] [--crawl] [--extract]
 
 WordPress Info Gatherer CLI Tool
 
