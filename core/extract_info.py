@@ -1,7 +1,6 @@
 # core/extract_info.py
 import requests
-
-headers = {"User-Agent": "Mozilla/5.0 (WPScanner)"}
+from .utils import get_random_user_agent
 
 def extract_info(base_url):
     endpoints = [
@@ -12,6 +11,7 @@ def extract_info(base_url):
         "/wp-json/wp/v2/comments"
     ]
     info = {}
+    headers = {"User-Agent": get_random_user_agent()}
 
     for ep in endpoints:
         try:
@@ -20,13 +20,13 @@ def extract_info(base_url):
             if r.status_code == 200 and r.headers.get('Content-Type', '').startswith('application/json'):
                 data = r.json()
                 info[ep] = data if isinstance(data, list) else [data]
-                if ep.endswith("users"):
-                    print("[+] Users Found:")
+                if ep.endswith("users") and data:
+                    print("  [>] Public Users Found via API:")
                     for u in data:
-                        print(" -", u.get("name"), f"(@{u.get('slug')})")
+                        print(f"    - Name: {u.get('name')}, Slug: {u.get('slug')}")
             else:
-                info[ep] = f"Non-200 or Non-JSON ({r.status_code})"
-        except Exception as e:
+                info[ep] = f"Non-200 or Non-JSON (Status: {r.status_code})"
+        except requests.exceptions.RequestException as e:
             info[ep] = str(e)
 
     return info
