@@ -16,7 +16,7 @@ Wpsploit is a powerful and fast command-line tool for performing comprehensive r
 -   **Site Crawler:** Crawls the website to discover internal links and map out the site structure.
 -   **API Data Extraction:** Attempts to extract public data from accessible WordPress REST API endpoints, including users, posts, pages, and media.
 -   **Concurrent Scanning:** Uses multithreading to perform scans quickly.
--   **JSON Output:** Saves all scan results in a clean, machine-readable JSON format for easy integration with other tools.
+-   **Automatic JSON Output:** Saves all scan results to a folder named after the target's domain for organized record-keeping.
 
 ---
 
@@ -51,7 +51,7 @@ python3 main.py -h
 ```
 
 ```
-usage: main.py [-h] -u URL [--threads THREADS] [--output ] [--brute] [--crawl] [--extract]
+usage: main.py [-h] -u URL [--threads THREADS] [--output] [--brute] [--crawl] [--extract]
 
 WordPress Info Gatherer CLI Tool
 
@@ -59,7 +59,7 @@ optional arguments:
   -h, --help         show this help message and exit
   -u URL, --url URL  Target WordPress site URL
   --threads THREADS  Thread count
-  --output           Outputs the results in the folder
+  --output           Save results to a folder named after the target domain
   --brute            Enable ?author= ID brute-forcing
   --crawl            Enable site crawling
   --extract          Enable API data extraction
@@ -67,14 +67,14 @@ optional arguments:
 
 ### Arguments
 
-| Argument        | Short | Description                                      |
-| --------------- | ----- | ------------------------------------------------ |
-| `--url`         | `-u`  | **(Required)** The target WordPress site URL.    |
-| `--threads`     |       | The number of concurrent threads for scanning.   |
-| `--output`      |       | The file path to save results in JSON format.    |
-| `--brute`       |       | Enables the author username enumeration feature. |
-| `--crawl`       |       | Enables the internal link crawler.               |
-| `--extract`     |       | Enables data extraction from the WP REST API.    |
+| Argument        | Short | Description                                                   |
+| --------------- | ----- | ------------------------------------------------------------- |
+| `--url`         | `-u`  | **(Required)** The target WordPress site URL.                 |
+| `--threads`     |       | The number of concurrent threads for scanning.                |
+| `--output`      |       | A flag to save results in an automatically created directory. |
+| `--brute`       |       | Enables the author username enumeration feature.              |
+| `--crawl`       |       | Enables the internal link crawler.                            |
+| `--extract`     |       | Enables data extraction from the WP REST API.                 |
 
 ---
 
@@ -94,11 +94,11 @@ Run a full scan, including user enumeration, site crawling, and API data extract
 python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract
 ```
 
-### 3. Full Scan with JSON Output
-Run a full scan and save all the findings to a file named `results.json`.
+### 3. Full Scan with Output
+Run a full scan and automatically save the findings. This command will create a folder named after the target's domain and save a `results.json` file inside it.
 
 ```sh
-python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract --output 
+python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract --output
 ```
 
 ### 4. Fast Scan
