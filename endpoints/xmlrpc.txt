@@ -1,0 +1,4 @@
+/xmlrpc.php
+/xmlrpc.php?method=system.listMethods
+/xmlrpc.php?method=wp.getUsersBlogs
+/xmlrpc.php?method=pingback.ping
