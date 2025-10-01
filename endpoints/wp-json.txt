@@ -4,3 +4,17 @@
 /wp-json/wp/v2/media
 /wp-json/wp/v2/comments
 /wp-json/wp/v2/settings
+/wp-json/wp/v2/types
+/wp-json/wp/v2/statuses
+/wp-json/wp/v2/taxonomies
+/wp-json/wp/v2/categories
+/wp-json/wp/v2/tags
+/wp-json/oembed/1.0/embed
+/wp-json/contact-form-7/v1/contact-forms
+/wp-json/yoast/v1/
+/wp-json/yoast/v1/reindex_posts
+/wp-json/yoast/v1/statistics
+/wp-json/acf/v3/
+/wp-json/wc/v3/
+/wp-json/wc/v2/
+/wp-json/wc/v1/
