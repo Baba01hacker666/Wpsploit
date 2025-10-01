@@ -25,6 +25,7 @@ def main():
     # Feature-specific options
     parser.add_argument("--max-author-id", type=int, default=15, help="Max author ID to check for brute-forcing")
     parser.add_argument("--crawl-depth", type=int, default=2, help="Max depth for the crawler")
+    parser.add_argument("--extra-recon", action="store_true", help="Enable extra reconnaissance techniques (version, plugins, themes, asset versions, user info, XML-RPC)")
 
     args = parser.parse_args()
     base_url = args.url.rstrip("/")
@@ -75,6 +76,33 @@ def main():
         print("\n[+] Extracting data from accessible REST APIs...")
         api_data = extract_info(base_url)
         results["extracted_info"] = api_data
+    if args.extra_recon:
+    from core.extra_recon import (
+        identify_wp_version,
+        enumerate_plugins_and_themes,
+        extract_versions_from_assets,
+        fetch_user_info_json,
+        check_xmlrpc_available
+    )
+    print("\n[+] Running extra reconnaissance techniques...")
+    version_info = identify_wp_version(base_url)
+    plugins, themes = enumerate_plugins_and_themes(base_url)
+    asset_versions = extract_versions_from_assets(base_url)
+    user_json = fetch_user_info_json(base_url)
+    xmlrpc_status, xmlrpc_resp = check_xmlrpc_available(base_url)
+    results["wp_version_info"] = version_info
+    results["plugins"] = plugins
+    results["themes"] = themes
+    results["asset_versions"] = asset_versions
+    results["user_json"] = user_json
+    results["xmlrpc"] = {"status": xmlrpc_status, "response": xmlrpc_resp}
+    # Print highlights
+    print("  [>] WP Version Info:", version_info)
+    print("  [>] Plugins:", plugins)
+    print("  [>] Themes:", themes)
+    print("  [>] Asset versions:", asset_versions)
+    print("  [>] User info:", user_json)
+    print("  [>] XML-RPC:", xmlrpc_status)
 
     # --- Summarize Important Findings ---
     print("\n" + "="*20 + " IMPORTANT FINDINGS " + "="*20)
