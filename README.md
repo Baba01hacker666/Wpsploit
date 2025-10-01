@@ -17,7 +17,7 @@ Wpsploit is a powerful and fast command-line tool for performing comprehensive r
 -   **API Data Extraction:** Attempts to extract public data from accessible WordPress REST API endpoints, including users, posts, pages, and media.
 -   **Concurrent Scanning:** Uses multithreading to perform scans quickly.
 -   **Automatic JSON Output:** Saves all scan results to a folder named after the target's domain for organized record-keeping.
-
+-   **Extra Reconnaissance Techniques:** Identify WP version, enumerate plugins/themes, extract asset versions, abuse WP JSON APIs, and test XML-RPC.
 ---
 
 ## Setup & Installation
