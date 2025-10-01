@@ -21,4 +21,14 @@
 /wp-admin/admin-ajax.php?action=revslider_show_image
 /wp-admin/setup-config.php
 /wp-includes/
+/wp-config.php
+/wp-config.php.bak
+/wp-config.php.old
+/wp-config.php.swp
+/wp-config.php.txt
+/license.html
+/install.php
+/wp-settings.php
 /wp-cron.php
+/.htaccess
+/web.config
