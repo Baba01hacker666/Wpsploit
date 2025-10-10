@@ -77,7 +77,7 @@ def main():
         api_data = extract_info(base_url)
         results["extracted_info"] = api_data
     if args.extra_recon:
-    from core.extra_recon import (
+     from core.extra_recon import (
         identify_wp_version,
         enumerate_plugins_and_themes,
         extract_versions_from_assets,
