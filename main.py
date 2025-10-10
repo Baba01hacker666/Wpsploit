@@ -103,7 +103,6 @@ def main():
     print("  [>] Asset versions:", asset_versions)
     print("  [>] User info:", user_json)
     print("  [>] XML-RPC:", xmlrpc_status)
-
     # --- Summarize Important Findings ---
     print("\n" + "="*20 + " IMPORTANT FINDINGS " + "="*20)
     has_findings = False
