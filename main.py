@@ -84,25 +84,25 @@ def main():
         fetch_user_info_json,
         check_xmlrpc_available
     )
-    print("\n[+] Running extra reconnaissance techniques...")
-    version_info = identify_wp_version(base_url)
-    plugins, themes = enumerate_plugins_and_themes(base_url)
-    asset_versions = extract_versions_from_assets(base_url)
-    user_json = fetch_user_info_json(base_url)
-    xmlrpc_status, xmlrpc_resp = check_xmlrpc_available(base_url)
-    results["wp_version_info"] = version_info
-    results["plugins"] = plugins
-    results["themes"] = themes
-    results["asset_versions"] = asset_versions
-    results["user_json"] = user_json
-    results["xmlrpc"] = {"status": xmlrpc_status, "response": xmlrpc_resp}
+     print("\n[+] Running extra reconnaissance techniques...")
+     version_info = identify_wp_version(base_url)
+     plugins, themes = enumerate_plugins_and_themes(base_url)
+     asset_versions = extract_versions_from_assets(base_url)
+     user_json = fetch_user_info_json(base_url)
+     xmlrpc_status, xmlrpc_resp = check_xmlrpc_available(base_url)
+     results["wp_version_info"] = version_info
+     results["plugins"] = plugins
+     results["themes"] = themes
+     results["asset_versions"] = asset_versions
+     results["user_json"] = user_json
+     results["xmlrpc"] = {"status": xmlrpc_status, "response": xmlrpc_resp}
     # Print highlights
-    print("  [>] WP Version Info:", version_info)
-    print("  [>] Plugins:", plugins)
-    print("  [>] Themes:", themes)
-    print("  [>] Asset versions:", asset_versions)
-    print("  [>] User info:", user_json)
-    print("  [>] XML-RPC:", xmlrpc_status)
+     print("  [>] WP Version Info:", version_info)
+     print("  [>] Plugins:", plugins)
+     print("  [>] Themes:", themes)
+     print("  [>] Asset versions:", asset_versions)
+     print("  [>] User info:", user_json)
+     print("  [>] XML-RPC:", xmlrpc_status)
     # --- Summarize Important Findings ---
     print("\n" + "="*20 + " IMPORTANT FINDINGS " + "="*20)
     has_findings = False
