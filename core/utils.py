@@ -1,8 +1,24 @@
 # core/utils.py
 import random
+import requests
+
+# ANSI Color Codes
+class Colors:
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    RESET = '\033[0m'
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 USER_AGENTS = []
+
+def setup_session():
+    """Sets up a requests.Session() with a random User-Agent and connection pooling."""
+    session = requests.Session()
+    session.headers.update({"User-Agent": get_random_user_agent()})
+    return session
 
 def load_user_agents(path="user_agents.txt"):
     """Loads user agents from a file, with a fallback."""
