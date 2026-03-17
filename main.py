@@ -9,7 +9,7 @@ from core.author_enum import author_enum
 from core.crawler import crawl_site
 from core.extract_info import extract_info
 from core.admin_finder import find_admin_panels
-from core.utils import setup_session, Colors
+from core.utils import setup_session, Colors, sanitize_output
 
 def print_banner():
     banner = rf"""{Colors.BLUE}
@@ -68,7 +68,8 @@ def main():
         users = author_enum(session, base_url, max_id=args.max_author_id, threads=args.threads)
         results["enumerated_users"] = users
         for u in users:
-            print(f"  [{Colors.GREEN}>{Colors.RESET}] Found user via author scanning: {Colors.GREEN}{u}{Colors.RESET}")
+            s_u = sanitize_output(u)
+            print(f"  [{Colors.GREEN}>{Colors.RESET}] Found user via author scanning: {Colors.GREEN}{s_u}{Colors.RESET}")
 
     if args.admin_finder:
         print(f"\n[{Colors.BLUE}+{Colors.RESET}] Searching for admin panels...")
@@ -124,11 +125,11 @@ def main():
      results["xmlrpc"] = {"status": xmlrpc_status, "response": xmlrpc_resp}
 
      # Print highlights
-     print(f"  [{Colors.GREEN}>{Colors.RESET}] WP Version Info: {version_info}")
-     print(f"  [{Colors.GREEN}>{Colors.RESET}] Plugins: {plugins}")
-     print(f"  [{Colors.GREEN}>{Colors.RESET}] Themes: {themes}")
-     print(f"  [{Colors.GREEN}>{Colors.RESET}] Asset versions: {asset_versions}")
-     print(f"  [{Colors.GREEN}>{Colors.RESET}] XML-RPC Status: {xmlrpc_status}")
+     print(f"  [{Colors.GREEN}>{Colors.RESET}] WP Version Info: {sanitize_output(version_info)}")
+     print(f"  [{Colors.GREEN}>{Colors.RESET}] Plugins: {sanitize_output(plugins)}")
+     print(f"  [{Colors.GREEN}>{Colors.RESET}] Themes: {sanitize_output(themes)}")
+     print(f"  [{Colors.GREEN}>{Colors.RESET}] Asset versions: {sanitize_output(asset_versions)}")
+     print(f"  [{Colors.GREEN}>{Colors.RESET}] XML-RPC Status: {sanitize_output(xmlrpc_status)}")
     # --- Summarize Important Findings ---
     print("\n" + Colors.CYAN + "="*20 + " IMPORTANT FINDINGS " + "="*20 + Colors.RESET)
     has_findings = False
@@ -139,7 +140,8 @@ def main():
         print(f"[{Colors.RED}!{Colors.RESET}] CRITICAL: /wp-config.php.save is exposed!")
         has_findings = True
     if results.get("enumerated_users"):
-        print(f"[{Colors.RED}!{Colors.RESET}] HIGH: Found {len(results['enumerated_users'])} usernames via author enumeration: {', '.join(results['enumerated_users'])}")
+        s_users = [sanitize_output(u) for u in results['enumerated_users']]
+        print(f"[{Colors.RED}!{Colors.RESET}] HIGH: Found {len(results['enumerated_users'])} usernames via author enumeration: {', '.join(s_users)}")
         has_findings = True
     if results.get("found_admin_panels"):
         print(f"[{Colors.BLUE}!{Colors.RESET}] INFO: Found {len(results['found_admin_panels'])} potential admin panel(s).")
@@ -149,7 +151,7 @@ def main():
         if isinstance(users_api, list) and users_api:
             # Check for actual user entries before warning
             if users_api and isinstance(users_api[0], dict) and 'slug' in users_api[0]:
-                usernames = [u.get('slug') for u in users_api if isinstance(u, dict)]
+                usernames = [sanitize_output(u.get('slug')) for u in users_api if isinstance(u, dict)]
                 print(f"[{Colors.RED}!{Colors.RESET}] HIGH: User listing is public via REST API. Users: {', '.join(usernames)}")
                 has_findings = True
     if not has_findings:

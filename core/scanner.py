@@ -2,7 +2,7 @@
 import requests
 import concurrent.futures
 from urllib.parse import urljoin
-from .utils import load_endpoints, get_random_user_agent, Colors
+from .utils import load_endpoints, get_random_user_agent, Colors, sanitize_output
 
 def check_endpoint(session, base_url, endpoint):
     url = urljoin(base_url, endpoint)
@@ -42,7 +42,8 @@ def scan_all_endpoints(session, base_url, threads):
                 if status is True:
                     print(f"  [{Colors.GREEN}+{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.GREEN}{status}{Colors.RESET})")
                 elif status == "redirect":
-                    print(f"  [{Colors.YELLOW}-{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.YELLOW}{status}{Colors.RESET})")
+                    s_info = sanitize_output(info)
+                    print(f"  [{Colors.YELLOW}-{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.YELLOW}{status}{Colors.RESET}, Location: {s_info})")
                 else:
                     print(f"  [{Colors.RED}-{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.RED}{status}{Colors.RESET})")
             except Exception as exc:

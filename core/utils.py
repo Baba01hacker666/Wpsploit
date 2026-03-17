@@ -47,5 +47,11 @@ def load_endpoints(path):
         print(f"[!] Warning: Endpoint file '{path}' not found. Skipping.")
         return []
 
+def sanitize_output(data):
+    """Escapes ANSI codes and other potentially harmful characters from untrusted data."""
+    if isinstance(data, str):
+        return repr(data)[1:-1]
+    return repr(data)
+
 # Initialize user agents on module load
 load_user_agents()
