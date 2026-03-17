@@ -1,6 +1,7 @@
 # core/extract_info.py
 import requests
 import concurrent.futures
+from .utils import sanitize_output
 
 def fetch_api_endpoint(session, base_url, ep):
     try:
@@ -36,6 +37,8 @@ def extract_info(session, base_url, threads=5):
                 if data and isinstance(data[0], dict) and 'slug' in data[0]:
                     print("  [>] Public Users Found via API:")
                     for u in data:
-                        print(f"    - Name: {u.get('name')}, Slug: {u.get('slug')}")
+                        name = sanitize_output(u.get('name'))
+                        slug = sanitize_output(u.get('slug'))
+                        print(f"    - Name: {name}, Slug: {slug}")
 
     return info
