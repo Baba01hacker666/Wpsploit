@@ -1,5 +1,16 @@
 import requests
 import re
+import concurrent.futures
+
+def _fetch_version_from_endpoint(session, base_url, ep):
+    try:
+        r = session.get(base_url + ep, timeout=7)
+        version_match = re.search(r'WordPress (\d+\.\d+(\.\d+)*)', r.text)
+        if version_match:
+            return ep, version_match.group(0), True
+        return ep, None, False
+    except requests.RequestException:
+        return ep, None, True
 
 def identify_wp_version(session, base_url, html_content=None):
     """Identify WordPress version from HTML meta tags, license.txt, or readme.html."""
@@ -18,15 +29,15 @@ def identify_wp_version(session, base_url, html_content=None):
         except requests.RequestException:
             findings['meta'] = None
 
-    # Try license.txt and readme.html
-    for ep in ["/license.txt", "/readme.html"]:
-        try:
-            r = session.get(base_url + ep, timeout=7)
-            version_match = re.search(r'WordPress (\d+\.\d+(\.\d+)*)', r.text)
-            if version_match:
-                findings[ep] = version_match.group(0)
-        except requests.RequestException:
-            findings[ep] = None
+    # Try license.txt and readme.html concurrently
+    endpoints = ["/license.txt", "/readme.html"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(endpoints)) as executor:
+        future_to_ep = {executor.submit(_fetch_version_from_endpoint, session, base_url, ep): ep for ep in endpoints}
+        for future in concurrent.futures.as_completed(future_to_ep):
+            ep, val, should_set = future.result()
+            if should_set:
+                findings[ep] = val
+
     return findings
 
 def enumerate_plugins_and_themes(session, base_url, html_content=None):
