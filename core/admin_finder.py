@@ -2,7 +2,8 @@
 import requests
 import concurrent.futures
 from urllib.parse import urljoin
-from .utils import load_endpoints, get_random_user_agent
+from .utils import load_endpoints
+
 
 def check_admin_path(session, base_url, path):
     """Checks if a path exists and returns the URL if successful."""
