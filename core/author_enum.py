@@ -1,4 +1,3 @@
-# core/author_enum.py
 import requests
 import re
 import concurrent.futures
