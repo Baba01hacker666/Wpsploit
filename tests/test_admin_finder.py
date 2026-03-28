@@ -1,17 +1,33 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import unittest
 import sys
 
-# Mock requests BEFORE importing core.admin_finder
-mock_requests = MagicMock()
 class RequestException(Exception):
     pass
-mock_requests.exceptions.RequestException = RequestException
-sys.modules["requests"] = mock_requests
-
-from core.admin_finder import check_admin_path
 
 class TestAdminFinder(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Mock requests BEFORE importing core.admin_finder
+        cls.mock_requests = MagicMock()
+        cls.mock_requests.exceptions.RequestException = RequestException
+
+        # Save original requests if it exists
+        cls.original_requests = sys.modules.get("requests")
+        sys.modules["requests"] = cls.mock_requests
+
+        # Now import the module under test
+        global check_admin_path
+        from core.admin_finder import check_admin_path
+
+    @classmethod
+    def tearDownClass(cls):
+        # Restore sys.modules
+        if cls.original_requests is None:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = cls.original_requests
+
     def test_check_admin_path_success(self):
         session = MagicMock()
         mock_response = MagicMock()
@@ -47,7 +63,6 @@ class TestAdminFinder(unittest.TestCase):
         session.get.side_effect = RequestException
 
         result = check_admin_path(session, "http://example.com", "wp-admin")
-        # THIS SHOULD FAIL if we change the code to NOT handle RequestException
         self.assertIsNone(result)
 
 if __name__ == "__main__":
