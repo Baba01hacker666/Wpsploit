@@ -9,7 +9,7 @@ from core.author_enum import author_enum
 from core.crawler import crawl_site
 from core.extract_info import extract_info
 from core.admin_finder import find_admin_panels
-from core.utils import setup_session, Colors, sanitize_output
+from core.utils import setup_session, Colors, sanitize_output, sanitize_filename
 
 def print_banner():
     banner = rf"""{Colors.BLUE}
@@ -43,7 +43,7 @@ def main():
 
     args = parser.parse_args()
     base_url = args.url.rstrip("/")
-    domain = urlparse(base_url).netloc
+    domain = sanitize_filename(urlparse(base_url).netloc)
     
     # --- Session Setup ---
     session = setup_session()

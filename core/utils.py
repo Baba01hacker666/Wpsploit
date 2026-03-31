@@ -1,5 +1,6 @@
 # core/utils.py
 import random
+import re
 import requests
 
 # ANSI Color Codes
@@ -52,6 +53,29 @@ def sanitize_output(data):
     if isinstance(data, str):
         return repr(data)[1:-1]
     return repr(data)
+
+_FILENAME_SAFE_RE = re.compile(r'[^a-zA-Z0-9.-]')
+
+def sanitize_filename(filename):
+    """
+    Sanitizes a string for use as a filename or directory name.
+    Replaces non-alphanumeric characters (except dots and hyphens) with underscores,
+    iteratively removes '..' sequences, and strips leading dots.
+    """
+    if not filename:
+        return "default"
+
+    # Replace unsafe characters
+    filename = _FILENAME_SAFE_RE.sub('_', filename)
+
+    # Remove '..' sequences
+    while '..' in filename:
+        filename = filename.replace('..', '.')
+
+    # Strip leading dots and hyphens (prevent hidden files and flag-like names)
+    filename = filename.lstrip('.-')
+
+    return filename or "default"
 
 # Initialize user agents on module load
 load_user_agents()
