@@ -20,13 +20,13 @@ def check_endpoint(session, base_url, endpoint):
 def scan_all_endpoints(session, base_url, threads):
     results = {}
     
-    # Combine all endpoint lists into one
-    endpoints_to_scan = []
+    # Combine all endpoint lists into one, using a set for automatic deduplication
+    endpoints_to_scan = set()
     for list_name in ["base", "wp-json", "xmlrpc"]:
-        endpoints_to_scan.extend(load_endpoints(f"endpoints/{list_name}.txt"))
+        endpoints_to_scan.update(load_endpoints(f"endpoints/{list_name}.txt"))
     
-    # Remove duplicates
-    endpoints_to_scan = sorted(list(set(endpoints_to_scan)))
+    # Final sorted list of unique endpoints
+    endpoints_to_scan = sorted(endpoints_to_scan)
 
     print(f"[*] Queued {len(endpoints_to_scan)} endpoints for scanning with {threads} threads.")
     
