@@ -1,6 +1,7 @@
 # core/utils.py
 import random
 import re
+from pathlib import Path
 import requests
 
 # ANSI Color Codes
@@ -15,6 +16,21 @@ class Colors:
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 USER_AGENTS = []
 
+
+def resolve_data_path(rel_path):
+    """Resolve data files relative to the repository root, with sensible fallbacks."""
+    candidate = Path(rel_path)
+    if candidate.is_absolute():
+        return candidate
+
+    repo_root = Path(__file__).resolve().parent.parent
+    anchored_path = repo_root / candidate
+    if anchored_path.exists():
+        return anchored_path
+
+    # Fallback for legacy callers relying on current working directory.
+    return candidate
+
 def setup_session():
     """Sets up a requests.Session() with a random User-Agent and connection pooling."""
     session = requests.Session()
@@ -24,13 +40,14 @@ def setup_session():
 def load_user_agents(path="user_agents.txt"):
     """Loads user agents from a file, with a fallback."""
     global USER_AGENTS
+    resolved_path = resolve_data_path(path)
     try:
-        with open(path, "r") as f:
+        with open(resolved_path, "r") as f:
             USER_AGENTS = [line.strip() for line in f if line.strip()]
         if not USER_AGENTS:
             USER_AGENTS = [DEFAULT_USER_AGENT]
     except FileNotFoundError:
-        print(f"[!] Warning: '{path}' not found. Using default user agent.")
+        print(f"[!] Warning: '{resolved_path}' not found. Using default user agent.")
         USER_AGENTS = [DEFAULT_USER_AGENT]
 
 def get_random_user_agent():
@@ -41,11 +58,12 @@ def get_random_user_agent():
 
 def load_endpoints(path):
     """Loads endpoints from a file."""
+    resolved_path = resolve_data_path(path)
     try:
-        with open(path, "r") as f:
+        with open(resolved_path, "r") as f:
             return [line.strip() for line in f if line.strip() and not line.startswith("#")]
     except FileNotFoundError:
-        print(f"[!] Warning: Endpoint file '{path}' not found. Skipping.")
+        print(f"[!] Warning: Endpoint file '{resolved_path}' not found. Skipping.")
         return []
 
 def sanitize_output(data):
