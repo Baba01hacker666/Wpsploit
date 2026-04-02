@@ -2,41 +2,52 @@ import requests
 import re
 import concurrent.futures
 
+VERSION_CHECK_FOUND = "found"
+VERSION_CHECK_NOT_FOUND = "not_found"
+VERSION_CHECK_REQUEST_ERROR = "request_error"
+
+
 def _fetch_version_from_endpoint(session, base_url, ep):
     try:
         r = session.get(base_url + ep, timeout=7)
         version_match = re.search(r'WordPress (\d+\.\d+(\.\d+)*)', r.text)
         if version_match:
-            return ep, version_match.group(0), True
-        return ep, None, False
-    except requests.RequestException:
-        return ep, None, True
+            return ep, version_match.group(0), VERSION_CHECK_FOUND, None
+        return ep, None, VERSION_CHECK_NOT_FOUND, None
+    except requests.RequestException as err:
+        return ep, None, VERSION_CHECK_REQUEST_ERROR, str(err)
 
 def identify_wp_version(session, base_url, html_content=None):
     """Identify WordPress version from HTML meta tags, license.txt, or readme.html."""
-    findings = {}
+    findings = {"statuses": {}}
     # Try main index using provided html_content if available
     if html_content:
         meta_matches = re.findall(r'content="WordPress[^"]*"', html_content)
+        findings["statuses"]["meta"] = VERSION_CHECK_FOUND if meta_matches else VERSION_CHECK_NOT_FOUND
         if meta_matches:
             findings['meta'] = meta_matches
     else:
         try:
             r = session.get(base_url, timeout=10)
             meta_matches = re.findall(r'content="WordPress[^"]*"', r.text)
+            findings["statuses"]["meta"] = VERSION_CHECK_FOUND if meta_matches else VERSION_CHECK_NOT_FOUND
             if meta_matches:
                 findings['meta'] = meta_matches
-        except requests.RequestException:
-            findings['meta'] = None
+        except requests.RequestException as err:
+            findings["statuses"]["meta"] = VERSION_CHECK_REQUEST_ERROR
+            findings.setdefault("errors", {})["meta"] = str(err)
 
     # Try license.txt and readme.html concurrently
     endpoints = ["/license.txt", "/readme.html"]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(endpoints)) as executor:
         future_to_ep = {executor.submit(_fetch_version_from_endpoint, session, base_url, ep): ep for ep in endpoints}
         for future in concurrent.futures.as_completed(future_to_ep):
-            ep, val, should_set = future.result()
-            if should_set:
+            ep, val, status, error = future.result()
+            findings["statuses"][ep] = status
+            if status == VERSION_CHECK_FOUND:
                 findings[ep] = val
+            elif status == VERSION_CHECK_REQUEST_ERROR:
+                findings.setdefault("errors", {})[ep] = error
 
     return findings
 

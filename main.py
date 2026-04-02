@@ -100,7 +100,10 @@ def main():
         enumerate_plugins_and_themes,
         extract_versions_from_assets,
         fetch_user_info_json,
-        check_xmlrpc_available
+        check_xmlrpc_available,
+        VERSION_CHECK_FOUND,
+        VERSION_CHECK_NOT_FOUND,
+        VERSION_CHECK_REQUEST_ERROR
      )
      print(f"\n[{Colors.BLUE}+{Colors.RESET}] Running extra reconnaissance techniques...")
 
@@ -126,6 +129,18 @@ def main():
 
      # Print highlights
      print(f"  [{Colors.GREEN}>{Colors.RESET}] WP Version Info: {sanitize_output(version_info)}")
+     for source, status in version_info.get("statuses", {}).items():
+         if status == VERSION_CHECK_FOUND:
+             if source == "meta":
+                 source_value = version_info.get("meta")
+             else:
+                 source_value = version_info.get(source)
+             print(f"  [{Colors.GREEN}>{Colors.RESET}] Version check [{source}]: found marker -> {sanitize_output(source_value)}")
+         elif status == VERSION_CHECK_NOT_FOUND:
+             print(f"  [{Colors.YELLOW}-{Colors.RESET}] Version check [{source}]: no version marker")
+         elif status == VERSION_CHECK_REQUEST_ERROR:
+             source_error = version_info.get("errors", {}).get(source, "unknown request error")
+             print(f"  [{Colors.RED}!{Colors.RESET}] Version check [{source}]: request failed ({sanitize_output(source_error)})")
      print(f"  [{Colors.GREEN}>{Colors.RESET}] Plugins: {sanitize_output(plugins)}")
      print(f"  [{Colors.GREEN}>{Colors.RESET}] Themes: {sanitize_output(themes)}")
      print(f"  [{Colors.GREEN}>{Colors.RESET}] Asset versions: {sanitize_output(asset_versions)}")
