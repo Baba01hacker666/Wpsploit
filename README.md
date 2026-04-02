@@ -46,6 +46,8 @@ Wpsploit is easy to set up. All you need is Python 3 and Git.
 
 The tool is operated from the command line. You can view all available options by using the `-h` or `--help` flag.
 
+> **Note:** Endpoint and user-agent data files are now resolved from the project location, so commands work even when launched outside the repository root (for example, via an absolute path to `main.py`).
+
 ```sh
 python3 main.py -h
 ```
