@@ -148,10 +148,15 @@ def main():
     # --- Summarize Important Findings ---
     print("\n" + Colors.CYAN + "="*20 + " IMPORTANT FINDINGS " + "="*20 + Colors.RESET)
     has_findings = False
-    if results.get("endpoint_scan", {}).get("/.git/", {}).get("status") == True:
+    git_endpoint = results.get("endpoint_scan", {}).get("/.git/", {})
+    git_status = git_endpoint.get("status")
+    if git_status in {"accessible", "protected", "redirect"}:
         print(f"[{Colors.RED}!{Colors.RESET}] CRITICAL: /.git directory is exposed!")
         has_findings = True
-    if results.get("endpoint_scan", {}).get("/wp-config.php.save", {}).get("status") == True:
+
+    wp_config_endpoint = results.get("endpoint_scan", {}).get("/wp-config.php.save", {})
+    wp_config_status = wp_config_endpoint.get("status")
+    if wp_config_status in {"accessible", "protected", "redirect"}:
         print(f"[{Colors.RED}!{Colors.RESET}] CRITICAL: /wp-config.php.save is exposed!")
         has_findings = True
     if results.get("enumerated_users"):
