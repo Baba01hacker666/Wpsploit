@@ -9,13 +9,16 @@ def check_endpoint(session, base_url, endpoint):
     try:
         r = session.get(url, timeout=10, allow_redirects=False)
         if r.status_code == 200:
-            return (endpoint, True, r.text[:300])
-        elif r.status_code in [301, 302]:
-            return (endpoint, "redirect", r.headers.get("Location"))
-        else:
-            return (endpoint, False, r.status_code)
+            return (endpoint, "accessible", r.text[:300], r.status_code)
+        elif r.status_code in [401, 403]:
+            return (endpoint, "protected", "authentication/authorization required", r.status_code)
+        elif 300 <= r.status_code < 400:
+            return (endpoint, "redirect", r.headers.get("Location"), r.status_code)
+        elif r.status_code == 404:
+            return (endpoint, "not_found", "resource not found", r.status_code)
+        return (endpoint, "other", f"http {r.status_code}", r.status_code)
     except requests.exceptions.RequestException as e:
-        return (endpoint, "error", str(e))
+        return (endpoint, "error", str(e), None)
 
 def scan_all_endpoints(session, base_url, threads):
     results = {}
@@ -36,18 +39,32 @@ def scan_all_endpoints(session, base_url, threads):
         for future in concurrent.futures.as_completed(future_to_ep):
             ep = future_to_ep[future]
             try:
-                ep_result, status, info = future.result()
-                results[ep_result] = {"status": status, "info": info}
+                ep_result, status, info, status_code = future.result()
+                results[ep_result] = {
+                    "status": status,
+                    "status_code": status_code,
+                    "info": info
+                }
 
-                if status is True:
-                    print(f"  [{Colors.GREEN}+{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.GREEN}{status}{Colors.RESET})")
+                if status == "accessible":
+                    print(f"  [{Colors.GREEN}+{Colors.RESET}] {base_url}{ep_result} ({Colors.GREEN}{status}{Colors.RESET}, HTTP {status_code})")
+                elif status == "protected":
+                    print(f"  [{Colors.BLUE}!{Colors.RESET}] {base_url}{ep_result} ({Colors.BLUE}{status}{Colors.RESET}, HTTP {status_code})")
                 elif status == "redirect":
                     s_info = sanitize_output(info)
-                    print(f"  [{Colors.YELLOW}-{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.YELLOW}{status}{Colors.RESET}, Location: {s_info})")
+                    print(
+                        f"  [{Colors.YELLOW}>{Colors.RESET}] {base_url}{ep_result} "
+                        f"({Colors.YELLOW}{status}{Colors.RESET}, HTTP {status_code}, Location: {s_info})"
+                    )
+                elif status == "not_found":
+                    print(f"  [{Colors.RED}-{Colors.RESET}] {base_url}{ep_result} ({Colors.RED}{status}{Colors.RESET}, HTTP {status_code})")
+                elif status == "error":
+                    s_info = sanitize_output(info)
+                    print(f"  [{Colors.RED}!{Colors.RESET}] {base_url}{ep_result} ({Colors.RED}{status}{Colors.RESET}: {s_info})")
                 else:
-                    print(f"  [{Colors.RED}-{Colors.RESET}] {base_url}{ep_result} (Status: {Colors.RED}{status}{Colors.RESET})")
+                    print(f"  [{Colors.YELLOW}-{Colors.RESET}] {base_url}{ep_result} ({Colors.YELLOW}{status}{Colors.RESET}, HTTP {status_code})")
             except Exception as exc:
                 print(f"[{Colors.RED}!{Colors.RESET}] {ep} generated an exception: {exc}")
-                results[ep] = {"status": "error", "info": str(exc)}
+                results[ep] = {"status": "error", "status_code": None, "info": str(exc)}
 
     return results
