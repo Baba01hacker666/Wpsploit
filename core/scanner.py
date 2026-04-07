@@ -2,7 +2,7 @@
 import requests
 import concurrent.futures
 from urllib.parse import urljoin
-from .utils import load_endpoints, get_random_user_agent, Colors, sanitize_output
+from .utils import load_endpoints, Colors, sanitize_output
 
 def check_endpoint(session, base_url, endpoint):
     url = urljoin(base_url, endpoint)
