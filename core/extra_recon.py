@@ -6,11 +6,17 @@ VERSION_CHECK_FOUND = "found"
 VERSION_CHECK_NOT_FOUND = "not_found"
 VERSION_CHECK_REQUEST_ERROR = "request_error"
 
+WP_VERSION_RE = re.compile(r'WordPress (\d+\.\d+(\.\d+)*)')
+META_WP_VERSION_RE = re.compile(r'content="WordPress[^"]*"')
+PLUGIN_RE = re.compile(r'wp-content/plugins/([^/"\']+)')
+THEME_RE = re.compile(r'wp-content/themes/([^/"\']+)')
+ASSET_VER_RE = re.compile(r'\?ver=([^"\'> ]+)')
+
 
 def _fetch_version_from_endpoint(session, base_url, ep):
     try:
         r = session.get(base_url + ep, timeout=7)
-        version_match = re.search(r'WordPress (\d+\.\d+(\.\d+)*)', r.text)
+        version_match = WP_VERSION_RE.search(r.text)
         if version_match:
             return ep, version_match.group(0), VERSION_CHECK_FOUND, None
         return ep, None, VERSION_CHECK_NOT_FOUND, None
@@ -22,14 +28,14 @@ def identify_wp_version(session, base_url, html_content=None):
     findings = {"statuses": {}}
     # Try main index using provided html_content if available
     if html_content:
-        meta_matches = re.findall(r'content="WordPress[^"]*"', html_content)
+        meta_matches = META_WP_VERSION_RE.findall(html_content)
         findings["statuses"]["meta"] = VERSION_CHECK_FOUND if meta_matches else VERSION_CHECK_NOT_FOUND
         if meta_matches:
             findings['meta'] = meta_matches
     else:
         try:
             r = session.get(base_url, timeout=10)
-            meta_matches = re.findall(r'content="WordPress[^"]*"', r.text)
+            meta_matches = META_WP_VERSION_RE.findall(r.text)
             findings["statuses"]["meta"] = VERSION_CHECK_FOUND if meta_matches else VERSION_CHECK_NOT_FOUND
             if meta_matches:
                 findings['meta'] = meta_matches
@@ -64,8 +70,8 @@ def enumerate_plugins_and_themes(session, base_url, html_content=None):
             html_content = ""
 
     if html_content:
-        plugins.update(re.findall(r'wp-content/plugins/([^/"\']+)', html_content))
-        themes.update(re.findall(r'wp-content/themes/([^/"\']+)', html_content))
+        plugins.update(PLUGIN_RE.findall(html_content))
+        themes.update(THEME_RE.findall(html_content))
 
     return sorted(list(plugins)), sorted(list(themes))
 
@@ -81,7 +87,7 @@ def extract_versions_from_assets(session, base_url, html_content=None):
             html_content = ""
 
     if html_content:
-        versions.update(re.findall(r'\?ver=([^"\'> ]+)', html_content))
+        versions.update(ASSET_VER_RE.findall(html_content))
 
     return sorted(list(versions))
 
