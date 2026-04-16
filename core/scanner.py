@@ -2,12 +2,12 @@
 import requests
 import concurrent.futures
 from urllib.parse import urljoin
-from .utils import load_endpoints, Colors, sanitize_output
+from .utils import load_endpoints, Colors, sanitize_output, safe_get
 
 def check_endpoint(session, base_url, endpoint):
     url = urljoin(base_url, endpoint)
     try:
-        r = session.get(url, timeout=10, allow_redirects=False)
+        r = safe_get(session, url, timeout=10, allow_redirects=False)
         if r.status_code == 200:
             return (endpoint, "accessible", r.text[:300], r.status_code)
         elif r.status_code in [401, 403]:

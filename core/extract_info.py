@@ -1,12 +1,12 @@
 # core/extract_info.py
 import requests
 import concurrent.futures
-from .utils import sanitize_output
+from .utils import sanitize_output, safe_get
 
 def fetch_api_endpoint(session, base_url, ep):
     try:
         url = base_url + ep
-        r = session.get(url, timeout=10)
+        r = safe_get(session, url, timeout=10)
         if r.status_code == 200 and r.headers.get('Content-Type', '').startswith('application/json'):
             data = r.json()
             return ep, data if isinstance(data, list) else [data]
