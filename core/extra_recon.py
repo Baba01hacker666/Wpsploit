@@ -1,6 +1,6 @@
 import requests
 import re
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 VERSION_CHECK_FOUND = "found"
 VERSION_CHECK_NOT_FOUND = "not_found"
@@ -39,9 +39,9 @@ def identify_wp_version(session, base_url, html_content=None):
 
     # Try license.txt and readme.html concurrently
     endpoints = ["/license.txt", "/readme.html"]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(endpoints)) as executor:
+    with ThreadPoolExecutor(max_workers=len(endpoints)) as executor:
         future_to_ep = {executor.submit(_fetch_version_from_endpoint, session, base_url, ep): ep for ep in endpoints}
-        for future in concurrent.futures.as_completed(future_to_ep):
+        for future in as_completed(future_to_ep):
             ep, val, status, error = future.result()
             findings["statuses"][ep] = status
             if status == VERSION_CHECK_FOUND:
