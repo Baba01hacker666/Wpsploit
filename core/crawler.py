@@ -3,6 +3,7 @@ import requests
 import concurrent.futures
 from bs4 import BeautifulSoup
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from .utils import safe_get
 
 
 def normalize_url(url):
@@ -22,7 +23,7 @@ def normalize_url(url):
 def fetch_and_parse(session, url, base_url, base_netloc):
     normalized_url = normalize_url(url)
     try:
-        r = session.get(normalized_url, timeout=10)
+        r = safe_get(session, normalized_url, timeout=10)
         # Only parse HTML content
         if 'text/html' not in r.headers.get('Content-Type', ''):
             return normalized_url, set(), set()

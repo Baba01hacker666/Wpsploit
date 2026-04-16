@@ -1,12 +1,12 @@
 import requests
 import re
 import concurrent.futures
-from .utils import get_random_user_agent
+from .utils import get_random_user_agent, safe_get
 
 def check_author_id(session, base_url, author_id):
     try:
         url = f"{base_url}/?author={author_id}"
-        r = session.get(url, timeout=10, allow_redirects=False)
+        r = safe_get(session, url, timeout=10, allow_redirects=False)
 
         # Successful enumeration redirects to /author/username/
         if r.status_code in [301, 302] and 'Location' in r.headers:

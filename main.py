@@ -4,12 +4,12 @@ import json
 import os
 from urllib.parse import urlparse
 
+from core.utils import setup_session, Colors, sanitize_output, sanitize_filename, safe_get
 from core.scanner import scan_all_endpoints
 from core.author_enum import author_enum
 from core.crawler import crawl_site
 from core.extract_info import extract_info
 from core.admin_finder import find_admin_panels
-from core.utils import setup_session, Colors, sanitize_output, sanitize_filename
 
 def print_banner():
     banner = rf"""{Colors.BLUE}
@@ -109,7 +109,7 @@ def main():
 
      # Fetch homepage once for shared use
      try:
-         r = session.get(base_url, timeout=10)
+         r = safe_get(session, base_url, timeout=10)
          html_content = r.text
      except Exception:
          html_content = ""
