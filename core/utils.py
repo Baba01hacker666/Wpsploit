@@ -95,5 +95,50 @@ def sanitize_filename(filename):
 
     return filename or "default"
 
+def safe_get(session, url, **kwargs):
+    """
+    Perform a session.get() with SSRF protections:
+    - Only allow http and https schemes.
+    - Manually follow redirects while verifying netloc.
+    """
+    from urllib.parse import urlparse, urljoin
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
+
+    # Capture the requested allow_redirects, default to True (requests default)
+    follow_redirects = kwargs.pop('allow_redirects', True)
+    max_redirects = kwargs.pop('max_redirects', 10)
+
+    # We must explicitly set allow_redirects=False for the actual requests call
+    r = session.get(url, allow_redirects=False, **kwargs)
+
+    # Manual redirect handling if requested
+    original_netloc = parsed.netloc
+    redirect_count = 0
+
+    while 300 <= r.status_code < 400 and follow_redirects and redirect_count < max_redirects:
+        location = r.headers.get('Location')
+        if not location:
+            break
+
+        next_url = urljoin(url, location)
+        next_parsed = urlparse(next_url)
+
+        # SSRF protection: Ensure same netloc
+        if next_parsed.netloc != original_netloc:
+            # We don't follow cross-domain redirects for security
+            break
+
+        if next_parsed.scheme not in ('http', 'https'):
+            break
+
+        r = session.get(next_url, allow_redirects=False, **kwargs)
+        url = next_url
+        redirect_count += 1
+
+    return r
+
 # Initialize user agents on module load
 load_user_agents()

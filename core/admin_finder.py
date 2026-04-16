@@ -2,14 +2,14 @@
 import requests
 import concurrent.futures
 from urllib.parse import urljoin
-from .utils import load_endpoints
+from .utils import load_endpoints, safe_get
 
 
 def check_admin_path(session, base_url, path):
     """Checks if a path exists and returns the URL if successful."""
     url = urljoin(base_url, path)
     try:
-        r = session.get(url, timeout=7, allow_redirects=True)
+        r = safe_get(session, url, timeout=7, allow_redirects=True)
         # A successful login page will usually be 200 OK
         if r.status_code == 200 and "log in" in r.text.lower():
             return r.url
