@@ -1,7 +1,7 @@
 import requests
 import re
 import concurrent.futures
-from .utils import get_random_user_agent, safe_get
+from .utils import safe_get
 
 def check_author_id(session, base_url, author_id):
     try:
