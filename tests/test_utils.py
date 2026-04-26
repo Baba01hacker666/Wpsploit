@@ -11,8 +11,8 @@ class TestUtils(unittest.TestCase):
         sys.modules["requests"] = cls.mock_requests
 
         # Import the functions under test
-        global sanitize_output, sanitize_filename
-        from core.utils import sanitize_output, sanitize_filename
+        global sanitize_output, sanitize_filename, safe_get
+        from core.utils import sanitize_output, sanitize_filename, safe_get
 
     @classmethod
     def tearDownClass(cls):
@@ -72,6 +72,126 @@ class TestUtils(unittest.TestCase):
         # Empty/None inputs
         self.assertEqual(sanitize_filename(""), "default")
         self.assertEqual(sanitize_filename(None), "default")
+
+    def test_safe_get_invalid_initial_scheme(self):
+        session = MagicMock()
+        with self.assertRaises(ValueError) as cm:
+            safe_get(session, "ftp://example.com")
+        self.assertIn("Invalid URL scheme", str(cm.exception))
+
+    def test_safe_get_success_no_redirect(self):
+        session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        session.get.return_value = mock_response
+
+        url = "http://example.com/page"
+        r = safe_get(session, url)
+
+        session.get.assert_called_once_with(url, allow_redirects=False)
+        self.assertEqual(r, mock_response)
+
+    def test_safe_get_follow_valid_redirect(self):
+        session = MagicMock()
+
+        # First response is a redirect
+        resp1 = MagicMock()
+        resp1.status_code = 301
+        resp1.headers = {'Location': '/new-path'}
+
+        # Second response is success
+        resp2 = MagicMock()
+        resp2.status_code = 200
+
+        session.get.side_effect = [resp1, resp2]
+
+        url = "http://example.com/old"
+        r = safe_get(session, url)
+
+        self.assertEqual(session.get.call_count, 2)
+        session.get.assert_any_call("http://example.com/old", allow_redirects=False)
+        session.get.assert_any_call("http://example.com/new-path", allow_redirects=False)
+        self.assertEqual(r, resp2)
+
+    def test_safe_get_prevent_cross_domain_redirect(self):
+        session = MagicMock()
+
+        # First response is a redirect to another domain
+        resp1 = MagicMock()
+        resp1.status_code = 302
+        resp1.headers = {'Location': 'http://attacker.com/malicious'}
+
+        session.get.return_value = resp1
+
+        url = "http://example.com/redirect"
+        r = safe_get(session, url)
+
+        # Should only call get once
+        session.get.assert_called_once_with(url, allow_redirects=False)
+        self.assertEqual(r, resp1)
+
+    def test_safe_get_prevent_invalid_scheme_redirect(self):
+        session = MagicMock()
+
+        # First response is a redirect to non-http/https
+        resp1 = MagicMock()
+        resp1.status_code = 302
+        resp1.headers = {'Location': 'gopher://example.com/something'}
+
+        session.get.return_value = resp1
+
+        url = "http://example.com/redirect"
+        r = safe_get(session, url)
+
+        # Should only call get once because scheme is invalid
+        session.get.assert_called_once_with(url, allow_redirects=False)
+        self.assertEqual(r, resp1)
+
+    def test_safe_get_respect_max_redirects(self):
+        session = MagicMock()
+
+        # Create a loop of redirects
+        resp = MagicMock()
+        resp.status_code = 302
+        resp.headers = {'Location': '/loop'}
+        session.get.return_value = resp
+
+        url = "http://example.com/start"
+        max_redirs = 5
+        r = safe_get(session, url, max_redirects=max_redirs)
+
+        # Initial call + max_redirs
+        self.assertEqual(session.get.call_count, max_redirs + 1)
+        self.assertEqual(r, resp)
+
+    def test_safe_get_respect_allow_redirects_false(self):
+        session = MagicMock()
+
+        resp1 = MagicMock()
+        resp1.status_code = 301
+        resp1.headers = {'Location': '/somewhere'}
+        session.get.return_value = resp1
+
+        url = "http://example.com/redirect"
+        r = safe_get(session, url, allow_redirects=False)
+
+        # Should only call once even if it's a redirect
+        session.get.assert_called_once_with(url, allow_redirects=False)
+        self.assertEqual(r, resp1)
+
+    def test_safe_get_missing_location_header(self):
+        session = MagicMock()
+
+        resp1 = MagicMock()
+        resp1.status_code = 301
+        resp1.headers = {} # No Location
+        session.get.return_value = resp1
+
+        url = "http://example.com/redirect"
+        r = safe_get(session, url)
+
+        session.get.assert_called_once_with(url, allow_redirects=False)
+        self.assertEqual(r, resp1)
 
 if __name__ == "__main__":
     unittest.main()
