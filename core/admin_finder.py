@@ -9,7 +9,7 @@ def check_admin_path(session, base_url, path):
     """Checks if a path exists and returns the URL if successful."""
     url = urljoin(base_url, path)
     try:
-        r = safe_get(session, url, timeout=7, allow_redirects=True)
+        r = safe_get(session, url, timeout=7, allow_redirects=False)
         # A successful login page will usually be 200 OK
         if r.status_code == 200 and "log in" in r.text.lower():
             return r.url
