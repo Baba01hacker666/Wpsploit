@@ -1,12 +1,12 @@
 import requests
 import re
 import concurrent.futures
-from .utils import get_random_user_agent, safe_get
+from .utils import get_random_user_agent, safe_get, get_default_timeout
 
 def check_author_id(session, base_url, author_id):
     try:
         url = f"{base_url}/?author={author_id}"
-        r = safe_get(session, url, timeout=10, allow_redirects=False)
+        r = safe_get(session, url, timeout=get_default_timeout(), allow_redirects=False)
 
         # Successful enumeration redirects to /author/username/
         if r.status_code in [301, 302] and 'Location' in r.headers:
@@ -20,7 +20,6 @@ def check_author_id(session, base_url, author_id):
 
 def author_enum(session, base_url, max_id=15, threads=10):
     found_users = set()
-    print(f"  [*] Brute-forcing author IDs from 1 to {max_id} with {threads} threads...")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         future_to_id = {executor.submit(check_author_id, session, base_url, i): i for i in range(1, max_id + 1)}

@@ -1,9 +1,18 @@
 # core/crawler.py
+import re
 import requests
 import concurrent.futures
-from bs4 import BeautifulSoup
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
-from .utils import safe_get
+from .utils import safe_get, get_default_timeout
+
+try:
+    from bs4 import BeautifulSoup
+
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
+
+HREF_RE = re.compile(r'<a\s[^>]*href=["\']([^"\']+)["\']', re.IGNORECASE)
 
 
 def normalize_url(url):
@@ -20,21 +29,25 @@ def normalize_url(url):
 
     return urlunparse((scheme, netloc, path, "", query, ""))
 
+def extract_links(html):
+    if HAS_BS4:
+        soup = BeautifulSoup(html, 'html.parser')
+        return (a['href'] for a in soup.find_all('a', href=True))
+    return (m.group(1) for m in HREF_RE.finditer(html))
+
 def fetch_and_parse(session, url, base_url, base_netloc):
     normalized_url = normalize_url(url)
     try:
-        r = safe_get(session, normalized_url, timeout=10)
+        r = safe_get(session, normalized_url, timeout=get_default_timeout())
         # Only parse HTML content
         if 'text/html' not in r.headers.get('Content-Type', ''):
             return normalized_url, set(), set()
 
-        soup = BeautifulSoup(r.text, 'html.parser')
         new_internal = set()
         new_external = set()
 
-        for a_tag in soup.find_all('a', href=True):
-            href = a_tag['href']
-            if not href or href.startswith(('#', 'mailto:', 'tel:')):
+        for href in extract_links(r.text):
+            if not href or href.startswith(('#', 'mailto:', 'tel:', 'javascript:')):
                 continue
 
             link = normalize_url(urljoin(base_url, href))

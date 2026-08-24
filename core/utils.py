@@ -1,6 +1,8 @@
 # core/utils.py
 import random
 import re
+import threading
+import time
 from pathlib import Path
 import requests
 
@@ -15,6 +17,45 @@ class Colors:
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 USER_AGENTS = []
+
+_default_timeout = 10.0
+_request_delay = 0.0
+_throttle_lock = threading.Lock()
+_last_request_time = 0.0
+
+
+def set_default_timeout(seconds):
+    global _default_timeout
+    try:
+        _default_timeout = max(1.0, float(seconds))
+    except (TypeError, ValueError):
+        pass
+    return _default_timeout
+
+
+def get_default_timeout():
+    return _default_timeout
+
+
+def set_request_delay(seconds):
+    global _request_delay
+    try:
+        _request_delay = max(0.0, float(seconds))
+    except (TypeError, ValueError):
+        pass
+    return _request_delay
+
+
+def _throttle():
+    global _last_request_time
+    if _request_delay <= 0:
+        return
+    with _throttle_lock:
+        now = time.monotonic()
+        wait = _request_delay - (now - _last_request_time)
+        if wait > 0:
+            time.sleep(wait)
+        _last_request_time = time.monotonic()
 
 
 def resolve_data_path(rel_path):
@@ -31,10 +72,12 @@ def resolve_data_path(rel_path):
     # Fallback for legacy callers relying on current working directory.
     return candidate
 
-def setup_session():
+def setup_session(proxy=None, user_agent=None):
     """Sets up a requests.Session() with a random User-Agent and connection pooling."""
     session = requests.Session()
-    session.headers.update({"User-Agent": get_random_user_agent()})
+    session.headers.update({"User-Agent": user_agent or get_random_user_agent()})
+    if proxy:
+        session.proxies.update({"http": proxy, "https": proxy})
     return session
 
 def load_user_agents(path="user_agents.txt"):
@@ -111,6 +154,9 @@ def safe_get(session, url, **kwargs):
     follow_redirects = kwargs.pop('allow_redirects', True)
     max_redirects = kwargs.pop('max_redirects', 10)
 
+    kwargs.setdefault('timeout', _default_timeout)
+    _throttle()
+
     # We must explicitly set allow_redirects=False for the actual requests call
     r = session.get(url, allow_redirects=False, **kwargs)
 
@@ -134,6 +180,7 @@ def safe_get(session, url, **kwargs):
         if next_parsed.scheme not in ('http', 'https'):
             break
 
+        _throttle()
         r = session.get(next_url, allow_redirects=False, **kwargs)
         url = next_url
         redirect_count += 1

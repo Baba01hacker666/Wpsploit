@@ -1,119 +1,129 @@
 # Wpsploit - WordPress Reconnaissance Tool
 
-![Python](https://img.shields.io/badge/python-3.6%2B-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ### Made by Doraemon Cyber Team
 
-Wpsploit is a powerful and fast command-line tool for performing comprehensive reconnaissance on WordPress websites. It helps security researchers and penetration testers gather essential information about a target WordPress installation quickly and efficiently.
+Wpsploit is a fast, smart command-line tool for reconnaissance and attack-surface mapping of WordPress sites.
+One flag is enough: it figures out everything else by itself.
+
+```sh
+python3 main.py -u https://target.com
+```
+
+That single command runs a **smart full recon**: endpoint scanning, user enumeration, REST API extraction,
+version/plugin/theme recon, security-headers audit, backup/log hunting, admin panel discovery, and known-issue
+hints — then prints a severity-ranked findings table with a risk score, and tells you what to do next.
 
 ---
 
-## Features
+## Highlights
 
--   **Endpoint Scanning:** Scans for common and sensitive WordPress files and directories (e.g., `/wp-admin/`, `/wp-config.php.save`, `/wp-json/`).
--   **User Enumeration:** Discovers valid usernames by brute-forcing author IDs (`/?author=1`, `/?author=2`, etc.).
--   **Site Crawler:** Crawls the website to discover internal links and map out the site structure.
--   **API Data Extraction:** Attempts to extract public data from accessible WordPress REST API endpoints, including users, posts, pages, and media.
--   **Concurrent Scanning:** Uses multithreading to perform scans quickly.
--   **Automatic JSON Output:** Saves all scan results to a folder named after the target's domain for organized record-keeping.
--   **Extra Reconnaissance Techniques:** Identify WP version, enumerate plugins/themes, extract asset versions, abuse WP JSON APIs, and test XML-RPC.
+- **Smart defaults** — no flag soup. `-u` alone runs every fast module; only the slow crawler is opt-in.
+- **Beautiful CLI** — rich terminal UI (tables, panels, spinners) with clean plain-text fallback when piped.
+- **Findings, not noise** — results are deduplicated, ranked CRITICAL → INFO, and scored 0–100 with a grade.
+- **Reports** — `results.json` + human-readable `report.md` saved to `./<domain>/` with `-o`.
+- **Gentle by design** — SSRF-safe redirects, output sanitization, configurable rate limiting (`--delay`),
+  proxy support, random or custom User-Agent.
+- **Offline vuln hints** — detected WP core / plugin / theme versions are matched against a built-in
+  known-issue database (no external API calls).
+
+## Modules
+
+| Key | Name | Default run | What it does |
+| --- | --- | --- | --- |
+| `scan` | Endpoint Scan | yes | Probes common/sensitive paths (`.git`, wp-config backups, xmlrpc, ...) |
+| `brute` | User Enumeration | yes | Reveals usernames via `?author=1..N` |
+| `extract` | REST API Extract | yes | Pulls public users/posts/pages/media/comments |
+| `recon` | Extra Recon | yes | WP version, plugins/themes, XML-RPC capabilities, REST namespaces |
+| `headers` | Headers Audit | yes | Security headers, server disclosure, cookie hardening |
+| `backups` | Backup Hunt | yes | Exposed debug logs, SQL dumps, archives, directory listings |
+| `admin` | Admin Finder | yes | Finds login panels moved off `/wp-admin` |
+| `hints` | Vuln Hints | yes | Matches versions against built-in known-issue DB |
+| `crawl` | Crawler | opt-in | Spiders internal/external links (slowest module) |
+
+Inspect them any time:
+
+```sh
+python3 main.py --list-modules
+```
+
 ---
 
 ## Setup & Installation
 
-Wpsploit is easy to set up. All you need is Python 3 and Git.
-
 1.  **Clone the repository:**
     ```sh
     git clone https://github.com/Baba01hacker666/Wpsploit.git
-    ```
-
-2.  **Navigate to the project directory:**
-    ```sh
     cd Wpsploit
     ```
 
-3.  **Install the required Python packages:**
+2.  **Install dependencies:**
     ```sh
-    pip3 install requests beautifulsoup4
+    pip3 install -r requirements.txt
     ```
-    *Note: Depending on your system, you may need to use `pip` instead of `pip3`.*
+
+    `requests` is the only hard requirement; `rich` adds the pretty UI and
+    `beautifulsoup4` improves crawling — the tool still works without them.
+
+Data files (endpoint wordlists, user agents) resolve from the project location, so the tool also
+works when launched from anywhere via an absolute path.
 
 ---
 
-## How to Use
-
-The tool is operated from the command line. You can view all available options by using the `-h` or `--help` flag.
-
-> **Note:** Endpoint and user-agent data files are now resolved from the project location, so commands work even when launched outside the repository root (for example, via an absolute path to `main.py`).
+## Usage
 
 ```sh
-python3 main.py -h
+python3 main.py --help        # full help
+python3 main.py               # interactive wizard (when run in a terminal)
 ```
 
-```
-usage: main.py [-h] -u URL [--threads THREADS] [--output] [--brute] [--crawl] [--extract]
+### The only command you usually need
 
-WordPress Info Gatherer CLI Tool
-
-optional arguments:
-  -h, --help         show this help message and exit
-  -u URL, --url URL  Target WordPress site URL
-  --threads THREADS  Thread count
-  --output           Save results to a folder named after the target domain
-  --brute            Enable ?author= ID brute-forcing
-  --crawl            Enable site crawling
-  --extract          Enable API data extraction
+```sh
+python3 main.py -u https://target.com          # smart full recon
+python3 main.py -u target.com                  # scheme auto-added
+python3 main.py -u https://target.com -o       # ...and save reports to ./target.com/
 ```
 
-### Arguments
+### Scan scope
 
-| Argument        | Short | Description                                                   |
-| --------------- | ----- | ------------------------------------------------------------- |
-| `--url`         | `-u`  | **(Required)** The target WordPress site URL.                 |
-| `--threads`     |       | The number of concurrent threads for scanning.                |
-| `--output`      |       | A flag to save results in an automatically created directory. |
-| `--brute`       |       | Enables the author username enumeration feature.              |
-| `--crawl`       |       | Enables the internal link crawler.                            |
-| `--extract`     |       | Enables data extraction from the WP REST API.                 |
+| Flag | Meaning |
+| --- | --- |
+| *(none)* | Smart default: every fast module, no crawler |
+| `-Q`, `--quick` | Endpoints only — fastest possible check |
+| `-A`, `--all` | Everything including the site crawler |
+| `--modules headers,hints` | Pick exactly which modules run |
+
+### Useful extras
+
+| Flag | Meaning |
+| --- | --- |
+| `-o [DIR]` | Save `results.json`, `report.md`, link lists |
+| `--threads N` | Concurrency (default 10) |
+| `--delay S` | Minimum seconds between requests — be gentle |
+| `--proxy URL` | Route through Burp/other proxy |
+| `--user-agent UA` | Override random UA rotation |
+| `--timeout S` | Per-request timeout (default 10) |
+| `--max-author-id N` | How far author enumeration probes |
+| `--crawl-depth N` | Crawler depth when using `--all` |
+| `--endpoints-file PATH` | Merge your own wordlist into the scan (repeatable) |
+| `-v / -q / --no-color / --no-banner` | Output control for humans and scripts |
 
 ---
 
-## Example Commands
-
-### 1. Basic Scan
-Perform a simple scan for common endpoints on a target website.
+## Tests
 
 ```sh
-python3 main.py -u https://target-wordpress-site.com
-```
-
-### 2. Comprehensive Scan
-Run a full scan, including user enumeration, site crawling, and API data extraction.
-
-```sh
-python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract
-```
-
-### 3. Full Scan with Output
-Run a full scan and automatically save the findings. This command will create a folder named after the target's domain and save a `results.json` file inside it.
-
-```sh
-python3 main.py -u https://target-wordpress-site.com --brute --crawl --extract --output
-```
-
-### 4. Fast Scan
-Increase the number of threads to speed up the endpoint scanning process (use with caution to avoid overwhelming the server).
-
-```sh
-python3 main.py -u https://target-wordpress-site.com --threads 50
+python3 -m unittest discover tests
 ```
 
 ---
 
 ## Disclaimer
 
-This tool is intended for educational purposes and for use in authorized security testing scenarios only. The end user is solely responsible for their actions. The developers assume no liability and are not responsible for any misuse or damage caused by this program.
+This tool is intended for educational purposes and for use in authorized security testing scenarios only.
+The end user is solely responsible for their actions. The developers assume no liability for misuse.
 
 **Always obtain explicit permission from the website owner before scanning a target.**

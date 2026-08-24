@@ -1,7 +1,7 @@
 import requests
 import re
 import concurrent.futures
-from .utils import safe_get
+from .utils import safe_get, get_default_timeout
 
 VERSION_CHECK_FOUND = "found"
 VERSION_CHECK_NOT_FOUND = "not_found"
@@ -13,10 +13,16 @@ PLUGIN_RE = re.compile(r'wp-content/plugins/([^/"\']+)')
 THEME_RE = re.compile(r'wp-content/themes/([^/"\']+)')
 ASSET_VER_RE = re.compile(r'\?ver=([^"\'> ]+)')
 
+_VALID_SLUG_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{2,}$')
+
+
+def _clean_slugs(matches):
+    return sorted({m for m in matches if _VALID_SLUG_RE.match(m)})
+
 
 def _fetch_version_from_endpoint(session, base_url, ep):
     try:
-        r = safe_get(session, base_url + ep, timeout=7)
+        r = safe_get(session, base_url + ep, timeout=get_default_timeout())
         version_match = WP_VERSION_RE.search(r.text)
 
         if version_match:
@@ -37,7 +43,7 @@ def identify_wp_version(session, base_url, html_content=None):
         meta_matches = META_WP_VERSION_RE.findall(html_content)
     else:
         try:
-            r = safe_get(session, base_url, timeout=10)
+            r = safe_get(session, base_url, timeout=get_default_timeout())
             meta_matches = META_WP_VERSION_RE.findall(r.text)
         except requests.RequestException as err:
             findings["statuses"]["meta"] = VERSION_CHECK_REQUEST_ERROR
@@ -71,21 +77,20 @@ def identify_wp_version(session, base_url, html_content=None):
 
 def enumerate_plugins_and_themes(session, base_url, html_content=None):
     """Enumerate plugins and themes from HTML source."""
-    plugins = set()
-    themes = set()
+    plugins, themes = [], []
 
     if html_content is None:
         try:
-            r = safe_get(session, base_url, timeout=10)
+            r = safe_get(session, base_url, timeout=get_default_timeout())
             html_content = r.text
         except requests.RequestException:
             html_content = ""
 
     if html_content:
-        plugins.update(PLUGIN_RE.findall(html_content))
-        themes.update(THEME_RE.findall(html_content))
+        plugins = _clean_slugs(PLUGIN_RE.findall(html_content))
+        themes = _clean_slugs(THEME_RE.findall(html_content))
 
-    return sorted(plugins), sorted(themes)
+    return plugins, themes
 
 
 def extract_versions_from_assets(session, base_url, html_content=None):
@@ -94,7 +99,7 @@ def extract_versions_from_assets(session, base_url, html_content=None):
 
     if html_content is None:
         try:
-            r = safe_get(session, base_url, timeout=10)
+            r = safe_get(session, base_url, timeout=get_default_timeout())
             html_content = r.text
         except requests.RequestException:
             html_content = ""
@@ -113,7 +118,7 @@ def fetch_user_info_json(session, base_url, post_url=None):
     if post_url:
         oembed_url = f"{base_url}/wp-json/oembed/1.0/embed?url={post_url}"
         try:
-            r = safe_get(session, oembed_url, timeout=10)
+            r = safe_get(session, oembed_url, timeout=get_default_timeout())
             if r.status_code == 200:
                 data["oembed"] = r.json()
         except requests.RequestException:
@@ -122,13 +127,40 @@ def fetch_user_info_json(session, base_url, post_url=None):
     # 🔹 Pages API
     pages_url = f"{base_url}/wp-json/wp/v2/pages"
     try:
-        r = safe_get(session, pages_url, timeout=10)
+        r = safe_get(session, pages_url, timeout=get_default_timeout())
         if r.status_code == 200:
             data["pages"] = r.json()
     except requests.RequestException:
         data["pages"] = None
 
     return data
+
+
+def enumerate_rest_namespaces(session, base_url):
+    """Enumerate wp-json namespaces; each namespace often maps to an active plugin."""
+    try:
+        r = safe_get(session, base_url + "/wp-json/", timeout=get_default_timeout())
+        if r.status_code != 200:
+            return [], f"HTTP {r.status_code}"
+        data = r.json()
+        routes = data.get("routes", {})
+        namespaces = set()
+        for route in routes:
+            parts = route.strip("/").split("/")
+            if len(parts) >= 2 and parts[0] != "wp" and not parts[0].startswith("oembed"):
+                candidate = "/".join(parts[:2])
+                ns_field = data.get("namespaces", [])
+                for declared in ns_field:
+                    if candidate == declared or candidate.startswith(declared):
+                        namespaces.add(declared)
+                        break
+                else:
+                    namespaces.add(candidate)
+        return sorted(namespaces), None
+    except requests.RequestException as e:
+        return [], str(e)
+    except ValueError as e:
+        return [], f"invalid JSON: {e}"
 
 
 def check_xmlrpc_available(session, base_url):
@@ -145,7 +177,7 @@ def check_xmlrpc_available(session, base_url):
         headers = session.headers.copy()
         headers.update({"Content-Type": "text/xml"})
 
-        r = session.post(url, data=xml_payload, headers=headers, timeout=10)
+        r = session.post(url, data=xml_payload, headers=headers, timeout=get_default_timeout())
         return r.status_code, r.text[:300]
 
     except requests.RequestException as e:
